@@ -24,7 +24,7 @@ int Segment_Display[10][7] = {{0, 0, 0, 0, 0, 0, 1}, //display number 0
 };
 
 void setup() {
-  // put your setup code here, to run once:
+
   pinMode(segmentA, OUTPUT);
   pinMode(segmentB, OUTPUT);
   pinMode(segmentC, OUTPUT);
@@ -36,28 +36,24 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-   
 
-  //to display number according to segment pin
   for (j = 0; j<7; j++)
   {
     digitalWrite(Arduino_Pins[j], Segment_Display[i][j]);
   }
 
 
-  //if button is pushed, number increase
+  // button is pushed, number increase
   if(digitalRead(BUTTON_PIN)==0)
   {
     while(digitalRead(BUTTON_PIN)==0)
     {
       
     }
-    i++; //increase counter with each push button
+    i++; 
   }
   
-
-  //start count back to 0
+  // reset number
   if(i == 10)
   {
     i = 0;
