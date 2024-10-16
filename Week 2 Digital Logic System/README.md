@@ -9,4 +9,4 @@
 | 2125625       | IKMAL HAKIM BIN ZAKI            |
 
 ![Working 7 Segment LED with Button](image.jpg)
-![Demonstration Video](https://raw.githubusercontent.com/eemrull/MCTA-3203/main/Week%202%20Digital%20Logic%20System/7%20Segment%20LED%20with%20Button.mp4)
+![Demonstration Video]("7 Segment LED with Button.mp4")
