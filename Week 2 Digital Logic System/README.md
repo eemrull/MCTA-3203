@@ -9,4 +9,5 @@
 | 2125625       | IKMAL HAKIM BIN ZAKI            |
 
 ![Working 7 Segment LED with Button](image.jpg)
-![Demonstration Video](7 Segment LED with Button.mp4)
+https://github.com/user-attachments/assets/6a22ce2e-abae-4dfb-8314-24c7627e0b0d
+
