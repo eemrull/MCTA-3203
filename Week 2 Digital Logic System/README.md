@@ -11,6 +11,6 @@
 ![Working 7 Segment LED with Button](image.jpg)
 <video width="320" height="240" controls>
 
-  <source src="video.mp4" type="video/mp4">
+  <source src="7 Segment LED with Button.mp4" type="video/mp4">
   Demonstration Video
 </video>
