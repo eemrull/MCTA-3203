@@ -1,4 +1,4 @@
-# WEEK 2 SERIAL COMMUNICATION GROUP 3
+# WEEK 3 SERIAL COMMUNICATION GROUP 3
 
 | Matric Number | Name                            |
 | ------------- | ------------------------------- |
