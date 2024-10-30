@@ -6,7 +6,7 @@ plt.ion()  # Interactive mode on
 fig, ax = plt.subplots()
 x_data, y_data = [], []
 
-ser = serial.Serial('COM4', 9600)
+ser = serial.Serial('COM3', 9600)
 
 while True:
     data = ser.readline().decode('utf-8').strip()
