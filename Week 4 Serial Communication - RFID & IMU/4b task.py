@@ -1,13 +1,18 @@
 import serial
 import time
+import json
 
 # Set your Arduino's serial port
 arduino_port = 'COM7'  # Change to COM7 for your Arduino
 rfid_port = 'COM6'      # Change to COM6 for your RFID reader
 baud_rate = 9600
 
-# Authorized card IDs (replace these with actual card IDs)
-authorized_cards = ["0008089233", "♥"]  # Example: ['4B8D', '7A4E']
+# Load authorized card IDs and servo angles from JSON
+config_data = '''{
+    "authorized_cards": ["0008089233", "♥"],
+    "servo_angle": 180
+}'''
+config = json.loads(config_data)
 
 def main():
     # Initialize the serial connection to the Arduino
@@ -36,12 +41,12 @@ def main():
                 print("No card detected. Skipping...")
                 continue  # Skip to the next iteration of the loop
 
-            if card_id in authorized_cards:
+            if card_id in config['authorized_cards']:
                 print("Access granted.")
-                arduino.write(b'A')  # Send 'A' to Arduino to allow servo control
+                arduino.write(f"A{config['servo_angle']}\n".encode())  # Send angle to Arduino
             else:
                 print("Access denied.")
-                arduino.write(b'D')  # Send 'D' to Arduino to disallow control
+                arduino.write(b'D')  # Send 'D' to disallow control
         else:
             # Check if 5 seconds have passed since the last card was detected
             if current_time - last_card_time > 5:
