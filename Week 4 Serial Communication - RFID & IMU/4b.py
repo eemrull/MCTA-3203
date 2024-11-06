@@ -1,40 +1,53 @@
-import usb.core
-import usb.util
+import serial
+import time
 
-# Define your RFID reader's vendor and product IDs
-vendor_id = 0x1234 # Replace with your RFID reader's vendor ID
-product_id = 0x5678 # Replace with your RFID reader's product ID
+# Set your Arduino's serial port
+arduino_port = 'COM7'  # Change to COM7 for your Arduino
+rfid_port = 'COM6'      # Change to COM6 for your RFID reader
+baud_rate = 9600
 
-# Authorized card IDs
-authorized_cards = ["YourCardID1", "YourCardID2"]
+# Authorized card IDs (replace these with actual card IDs)
+authorized_cards = ["0008089233", "♥"]  # Example: ['4B8D', '7A4E']
 
-# Initialize the USB RFID reader
-dev = usb.core.find(idVendor=vendor_id, idProduct=product_id)
-if dev is None:
-    raise ValueError("RFID reader not found")
+def main():
+    # Initialize the serial connection to the Arduino
+    arduino = serial.Serial(arduino_port, baud_rate, timeout=1)
+    time.sleep(2)  # Wait for the connection to establish
+    
+    # Initialize the serial connection to the RFID reader
+    rfid = serial.Serial(rfid_port, baud_rate, timeout=1)
+    time.sleep(2)  # Wait for the connection to establish
 
-# Detach kernel driver if it's attached
-if dev.is_kernel_driver_active(0):
-    dev.detach_kernel_driver(0)
+    last_card_time = time.time()  # Initialize the last detected card time
 
-# Set the configuration of the device
-dev.set_configuration()
-
-# Define the endpoint
-endpoint = dev[0][(0, 0)][0]
-
-while True:
-    try:
-                        
-        data = dev.read(endpoint.bEndpointAddress, endpoint.wMaxPacketSize)
-        card_id = ''.join([chr(byte) for byte in data])
+    while True:
+        current_time = time.time()
         
-        if card_id in authorized_cards:
-            print("Access granted. You can now control the servo.")
-            # Send the 'A' signal to the Arduino
-            ser.write(b'A')
+        if rfid.in_waiting > 0:  # Check if the RFID reader has data
+            card_id = rfid.readline().decode('utf-8').strip()  # Read the card ID
+            card_id = card_id[1:]  # Remove the first character (control character)
+            print(f"Card ID: {card_id} (ASCII: {[ord(c) for c in card_id]})")  # Debugging line
+            
+            # Reset the last card detection time
+            last_card_time = current_time  
+
+            # Check for empty card ID
+            if not card_id:
+                print("No card detected. Skipping...")
+                continue  # Skip to the next iteration of the loop
+
+            if card_id in authorized_cards:
+                print("Access granted.")
+                arduino.write(b'A')  # Send 'A' to Arduino to allow servo control
+            else:
+                print("Access denied.")
+                arduino.write(b'D')  # Send 'D' to Arduino to disallow control
         else:
-            print("Access denied. Unauthorized card.")
-            ser.write(b'D')
-    except usb.core.USBError:
-        pass
+            # Check if 5 seconds have passed since the last card was detected
+            if current_time - last_card_time > 5:
+                print("No card detected for 5 seconds. Sending 'D' to Arduino.")
+                arduino.write(b'D')  # Send 'D' to Arduino to disallow control
+                last_card_time = current_time  # Reset the last card time to avoid repeated sends
+
+if __name__ == "__main__":
+    main()
