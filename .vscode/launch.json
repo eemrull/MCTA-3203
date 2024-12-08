@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/AQMJ/MCTA-3203/week 7 - bluetooth",
-      "program": "c:/Users/AQMJ/MCTA-3203/week 7 - bluetooth/build/Debug/outDebug",
+      "cwd": "c:/Users/AQMJ/MCTA-3203/week 8 - bluetooth",
+      "program": "c:/Users/AQMJ/MCTA-3203/week 8 - bluetooth/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
