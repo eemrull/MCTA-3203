@@ -2,7 +2,7 @@ import serial
 import matplotlib.pyplot as plt
 
 # Update this to your actual port and baud rate
-port = 'COM6'  # Change to your port, e.g., 'COM6' or '/dev/ttyUSB0'
+port = 'COM12'  # Change to your port Yana's COMPORT 'COM12'
 baud_rate = 9600
 
 # Create a serial connection
