@@ -9,7 +9,10 @@ Pixy pixy;
 #define BLUE 3
 #define ORANGE 4
 #define RED 5
-#define MAX_CLOTHES 10 // Maximum capacity of the washer
+#define MAX_CLOTHES 10
+
+// Persistent variable to track the total number of clothes
+int clothesCount = 0;
 
 void setup() {
   // Start the serial monitor and initialize Pixy
@@ -20,27 +23,28 @@ void setup() {
 void loop() {
   // Retrieve the number of detected blocks
   int blocks = pixy.getBlocks();
-  static int clothesCount = 0; // Use static so the count persists across loop iterations
 
   if (blocks) {
     // Iterate through detected blocks
     for (int i = 0; i < blocks; i++) {
       int signature = pixy.blocks[i].signature;
 
-      // Count only blocks with the 5 predefined color signatures
-      if (signature == GREEN || signature == PINK || signature == BLUE || signature == ORANGE || signature == RED) {
-        // Increment the count
-        clothesCount++;
+      // Check if the detected block matches any of the trained color signatures
+      if ((signature == GREEN || signature == RED || signature == BLUE || signature == ORANGE || signature == PINK) && clothesCount < MAX_CLOTHES) {
+        clothesCount++;  // Increment the count only if it is less than the maximum
+      }
+
+      // Print the total number of detected clothes
+      Serial.print("Total clothes detected: ");
+      Serial.println(clothesCount);
+      delay(1000);
+
+      // Check if the number of clothes exceeds the washer's capacity
+      if (clothesCount == MAX_CLOTHES) {
+        Serial.println("Washer is full!");
+        break;  // Stop checking for more clothes once the limit is reached
       }
     }
-  }
-
-  // Display appropriate message
-  if (clothesCount > MAX_CLOTHES) {
-    Serial.println("Exceeded washer capacity! Please remove some clothes.");
-  } else {
-    Serial.print("Total clothes detected: ");
-    Serial.println(clothesCount);
   }
 
   delay(1000); // Short delay for stability
