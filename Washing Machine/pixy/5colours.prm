@@ -4,10 +4,10 @@
  <data type="INT8_ARRAY" key="signature1" value="gQAAgSAAAADJ8P//ofL//7bx///98f//N/b//xr0//95k2wAAAAAAA=="/>
  <data type="FLOAT32" key="Signature 1 range" value="3"/>
  <data type="STRING" key="Signature label 1" value="green"/>
- <data type="INT8_ARRAY" key="signature2" value="gQAAgSAAAADREgAAmxQAALYTAADrBAAAywYAANoFAABBOFcAAAAAAA=="/>
+ <data type="INT8_ARRAY" key="signature2" value="gQAAgSAAAAAdNAAATTYAADY1AACRBwAAiwkAAI4IAABQOcYAAAAAAA=="/>
  <data type="FLOAT32" key="Signature 2 range" value="3"/>
  <data type="STRING" key="Signature label 2" value="pink"/>
- <data type="INT8_ARRAY" key="signature3" value="gQAAgSAAAACp9v//k/f//x73//+xOwAArz4AADA9AAClMB8AAAAAAA=="/>
+ <data type="INT8_ARRAY" key="signature3" value="gQAAgSAAAACF/P//F/7//079//8NKAAA+SoAAIQpAABMHx0AAAAAAA=="/>
  <data type="FLOAT32" key="Signature 3 range" value="3"/>
  <data type="STRING" key="Signature label 3" value="blue"/>
  <data type="INT8_ARRAY" key="signature4" value="gQAAgSAAAAChEAAANxYAAGwTAAAL9///pfj//9j3//9jfLgAAAAAAA=="/>
@@ -51,3 +51,4 @@
  <data type="INT8" key="Startup program" value="0"/>
  <data type="INT8" key="Debug" value="0"/>
 </Pixy_parameters>
+
