@@ -1,5 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <esp_now.h>
 #include <WiFi.h>
 
@@ -7,11 +9,17 @@
 #define BUTTON_PIN 25
 #define POTENTIOMETER_PIN 34
 
-// LCD Initialization
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+// LCD Initialization for 20x4 screen
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+// OLED Initialization
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 32
+#define OLED_RESET -1
+Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define ESP-NOW settings
-uint8_t receiverAddress[] = {0xC0, 0x5D, 0x89, 0xDC, 0xA5, 0x00}; // Replace with ESP1 MAC address
+uint8_t receiverAddress[] = {0xC0, 0x5D, 0x89, 0xDC, 0xA5, 0x00};
 
 // Data structure for transmission
 typedef struct {
@@ -33,6 +41,16 @@ int selectedIndices[] = {0, 0, 0};
 unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 50;
 
+int parseTime(const char *timeStr) {
+  int timeValue = atoi(timeStr);
+  char unit = timeStr[strlen(timeStr) - 1];
+
+  if (unit == 'm') {
+    return timeValue * 60;
+  }
+  return 0;
+}
+
 bool buttonState = HIGH;
 bool lastButtonState = HIGH;
 
@@ -44,6 +62,15 @@ void onSent(const uint8_t *macAddr, esp_now_send_status_t status) {
 void setup() {
   lcd.init();
   lcd.backlight();
+
+  if (!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("OLED initialization failed!"));
+    while (1);
+  }
+  oled.display();
+
+  oled.setTextSize(2); // Change to a smaller text size for better centering
+  oled.setTextColor(WHITE);
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(POTENTIOMETER_PIN, INPUT);
@@ -61,11 +88,14 @@ void setup() {
   peerInfo.encrypt = false;
   esp_now_add_peer(&peerInfo);
 
+  // Centered LCD output
   lcd.setCursor(0, 0);
-  lcd.print("Select Temp:");
+  String message = "Select Temp:";
+  int messageLength = message.length();
+  int centerPosition = (20 - messageLength) / 2; // Adjust for 20 characters
+  lcd.setCursor(centerPosition, 0);
+  lcd.print(message);
   lcd.setCursor(0, 1);
-  lcd.print(temperatureOptions[selectedIndices[0]]);
-
   Serial.begin(115200);
 }
 
@@ -87,36 +117,53 @@ void loop() {
     int maxIndex = step == 0 ? 3 : step == 1 ? 3 : 2;
     selectedIndices[step] = constrain(map(potValue, 0, 4095, 0, maxIndex), 0, maxIndex);
 
+    // Clear LCD
     lcd.setCursor(0, 1);
     lcd.print("                "); // Clear line
     lcd.setCursor(0, 1);
-    lcd.print(step == 0 ? temperatureOptions[selectedIndices[0]]
-                        : step == 1 ? timeOptions[selectedIndices[1]]
-                                    : functionOptions[selectedIndices[2]]);
+    displayOptionsOnOLED();
   }
 }
 
 void buttonPressed() {
   step++;
   lcd.clear();
-
+  displayOptionsOnOLED();
+  
   if (step == 1) {
-    lcd.print("Select Time:");
+    String message = "Select Time:";
+    int messageLength = message.length();
+    int centerPosition = (20 - messageLength) / 2; // Adjust for 20 characters
+    lcd.setCursor(centerPosition, 0);
+    lcd.print(message);
     lcd.setCursor(0, 1);
-    lcd.print(timeOptions[selectedIndices[1]]);
   } else if (step == 2) {
-    lcd.print("Select Func:");
+    String message = "Select Func:";
+    int messageLength = message.length();
+    int centerPosition = (20 - messageLength) / 2; // Adjust for 20 characters
+    lcd.setCursor(centerPosition, 0);
+    lcd.print(message);
     lcd.setCursor(0, 1);
-    lcd.print(functionOptions[selectedIndices[2]]);
   } else if (step == 3) {
-    lcd.print("Summary:");
+    // Display Summary on LCD (Row 1 and 2 for title, Row 3 and 4 for options)
+    lcd.clear();
+    String message = "Summary:";
+    int messageLength = message.length();
+    int centerPosition = (20 - messageLength) / 2;
+    lcd.setCursor(centerPosition, 0);
+    lcd.print(message);
     lcd.setCursor(0, 1);
+    
+    lcd.setCursor(0, 2);
     lcd.print(temperatureOptions[selectedIndices[0]]);
     lcd.print(", ");
     lcd.print(timeOptions[selectedIndices[1]]);
     lcd.print(", ");
     lcd.print(functionOptions[selectedIndices[2]]);
-    delay(3000);
+    
+    delay(500);
+    displayWaitMessageOnOLED();
+    delay(2500);
 
     strcpy(userData.temperature, temperatureOptions[selectedIndices[0]]);
     strcpy(userData.time, timeOptions[selectedIndices[1]]);
@@ -124,21 +171,37 @@ void buttonPressed() {
     userData.timeRemaining = parseTime(userData.time);
 
     esp_now_send(receiverAddress, (uint8_t *)&userData, sizeof(userData));
-
+    
     startCountdown(userData.timeRemaining);
     resetSystem();
   }
 }
 
+void displayWaitMessageOnOLED() {
+  oled.clearDisplay();
+  oled.setTextSize(3);  // Increase text size for better visibility
+  oled.setTextColor(WHITE);
+
+  String message = "Wait...";
+  int textWidth = message.length() * 15;  // Estimate text width (15px per character)
+  int x = (SCREEN_WIDTH - textWidth) / 2;
+  int y = (SCREEN_HEIGHT - 8 * 3) / 2;  // Adjust vertical position based on text height
+  y = y + 4; 
+  oled.setCursor(x, y);
+  oled.print(message);
+  oled.display();
+}
+
 void startCountdown(int totalSeconds) {
   while (totalSeconds >= 0) {
-    lcd.clear();
-    lcd.print("Time Left:");
-    lcd.setCursor(0, 1);
-    lcd.print(totalSeconds / 60);
-    lcd.print("m ");
-    lcd.print(totalSeconds % 60);
-    lcd.print("s");
+    oled.clearDisplay();
+    oled.setCursor(0, 0);
+    oled.setCursor(0, 10);
+    oled.print(totalSeconds / 60);
+    oled.print("m ");
+    oled.print(totalSeconds % 60);
+    oled.print("s");
+    oled.display();
     delay(1000);
     totalSeconds--;
 
@@ -146,17 +209,11 @@ void startCountdown(int totalSeconds) {
     esp_now_send(receiverAddress, (uint8_t *)&userData, sizeof(userData));
   }
 
-  lcd.clear();
-  lcd.print("Complete!");
+  oled.clearDisplay();
+  oled.setCursor(0, 0);
+  oled.print("Complete!");
+  oled.display();
   delay(3000);
-}
-
-int parseTime(const char *timeOption) {
-  if (strcmp(timeOption, "15m") == 0) return 15 * 60;
-  if (strcmp(timeOption, "30m") == 0) return 30 * 60;
-  if (strcmp(timeOption, "45m") == 0) return 45 * 60;
-  if (strcmp(timeOption, "60m") == 0) return 60 * 60;
-  return 0;
 }
 
 void resetSystem() {
@@ -164,7 +221,28 @@ void resetSystem() {
   memset(selectedIndices, 0, sizeof(selectedIndices));
 
   lcd.clear();
-  lcd.print("Select Temp:");
+  String message = "Select Temp:";
+  int messageLength = message.length();
+  int centerPosition = (20 - messageLength) / 2; // Adjust for 20 characters
+  lcd.setCursor(centerPosition, 0);
+  lcd.print(message);
   lcd.setCursor(0, 1);
-  lcd.print(temperatureOptions[0]);
+}
+
+void displayOptionsOnOLED() {
+  oled.clearDisplay();
+  oled.setTextSize(3);  // Set the text size to 2.5 (approximated as 3)
+  oled.setTextColor(WHITE);
+
+  String message = (step == 0) ? temperatureOptions[selectedIndices[0]]
+                                : (step == 1) ? timeOptions[selectedIndices[1]]
+                                              : functionOptions[selectedIndices[2]];
+
+  int textWidth = message.length() * 15;  // Estimate text width (15px per character)
+  int x = (SCREEN_WIDTH - textWidth) / 2;
+  int y = (SCREEN_HEIGHT - 8 * 3) / 2;  // Adjust vertical position based on text height
+  y = y + 4; 
+  oled.setCursor(x, y);
+  oled.print(message);
+  oled.display();
 }
