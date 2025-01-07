@@ -8,6 +8,7 @@
 // Define pins
 #define BUTTON_PIN 25
 #define POTENTIOMETER_PIN 34
+const int door = 3;  // Pin for the door sensor
 
 // LCD Initialization for 20x4 screen
 LiquidCrystal_I2C lcd(0x27, 20, 4);
@@ -74,6 +75,7 @@ void setup() {
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(POTENTIOMETER_PIN, INPUT);
+  pinMode(door, INPUT_PULLUP);  // Configure door sensor pin
 
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
@@ -100,6 +102,16 @@ void setup() {
 }
 
 void loop() {
+  int doorState = digitalRead(door);  // Read the door sensor state
+
+  // Check if the door is open, if it is, show the "Close the door" message
+  if (doorState == HIGH) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Close the door first");
+    return;  // Exit the loop to prevent proceeding with option selection
+  }
+
   int reading = digitalRead(BUTTON_PIN);
   if (reading != lastButtonState) {
     lastDebounceTime = millis();
