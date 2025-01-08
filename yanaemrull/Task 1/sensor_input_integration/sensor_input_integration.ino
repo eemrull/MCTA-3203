@@ -1,6 +1,6 @@
 // Define pins for the ultrasonic sensor
-const int trigPin = 10;
-const int echoPin = 9;
+const int trigPin = 7;
+const int echoPin = 6;
 
 // Define pin for the LM35 temperature sensor
 const int tempPin = A0;
