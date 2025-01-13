@@ -8,7 +8,9 @@
 // Define pins
 #define BUTTON_PIN 25
 #define POTENTIOMETER_PIN 34
-const int door = 3;  // Pin for the door sensor
+const int door = 2;  // Pin for the door sensor
+const int trigPin = 32;  // Ultrasonic Trigger Pin
+const int echoPin = 33;  // Ultrasonic Echo Pin
 
 // LCD Initialization for 20x4 screen
 LiquidCrystal_I2C lcd(0x27, 20, 4);
@@ -20,7 +22,7 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define ESP-NOW settings
-uint8_t receiverAddress[] = {0xC0, 0x5D, 0x89, 0xDC, 0xA5, 0x00};
+uint8_t receiverAddress[] = {0xE0, 0x5A, 0x1B, 0xCB, 0x62, 0x28};
 
 // Data structure for transmission
 typedef struct {
@@ -28,6 +30,7 @@ typedef struct {
   char time[8];
   char function[8];
   int timeRemaining;
+  float detergentVolume;  // Detergent volume in percentage
 } UserData;
 
 UserData userData;
@@ -76,6 +79,9 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(POTENTIOMETER_PIN, INPUT);
   pinMode(door, INPUT_PULLUP);  // Configure door sensor pin
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
 
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
@@ -173,6 +179,13 @@ void buttonPressed() {
     lcd.print(", ");
     lcd.print(functionOptions[selectedIndices[2]]);
     
+    // Calculate and display detergent volume
+    lcd.setCursor(0, 3);
+    lcd.print("Detergent: ");
+    int detergentVolume = (int)calculateDetergentVolume();  // Convert to int
+    lcd.print(detergentVolume);  // Display as integer (no decimals)
+    lcd.print("%");
+
     delay(500);
     displayWaitMessageOnOLED();
     delay(2500);
@@ -181,12 +194,40 @@ void buttonPressed() {
     strcpy(userData.time, timeOptions[selectedIndices[1]]);
     strcpy(userData.function, functionOptions[selectedIndices[2]]);
     userData.timeRemaining = parseTime(userData.time);
+    userData.detergentVolume = detergentVolume;
 
     esp_now_send(receiverAddress, (uint8_t *)&userData, sizeof(userData));
     
     startCountdown(userData.timeRemaining);
     resetSystem();
   }
+}
+
+// Ultrasonic sensor distance measurement function
+long getDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+  long distance = (duration / 2) * 0.0344;  // Calculate distance in cm
+  return distance;
+}
+
+// Calculate detergent volume as a percentage
+float calculateDetergentVolume() {
+  long currentHeight = getDistance();  // Get current height from ultrasonic sensor
+  const float initialHeight = 10;  // Initial height (for simplicity)
+  
+  // Detergent volume formula
+  float detergentVolume = (initialHeight - currentHeight) / initialHeight * 100;
+
+  // Ensure the detergent volume is never negative
+  detergentVolume = max(0.0f, detergentVolume);
+
+  return detergentVolume;
 }
 
 void displayWaitMessageOnOLED() {
@@ -217,7 +258,17 @@ void startCountdown(int totalSeconds) {
     delay(1000);
     totalSeconds--;
 
-    userData.timeRemaining = totalSeconds;
+    // Dynamically update detergent volume during the countdown on LCD
+    float detergentVolume = calculateDetergentVolume();
+    userData.detergentVolume = detergentVolume;
+
+    // Update the detergent volume on the LCD (Row 3)
+    lcd.setCursor(0, 3);
+    lcd.print("Detergent: ");
+    lcd.print(detergentVolume);
+    lcd.print("%");
+
+    // Send updated data to the receiver
     esp_now_send(receiverAddress, (uint8_t *)&userData, sizeof(userData));
   }
 
@@ -227,6 +278,7 @@ void startCountdown(int totalSeconds) {
   oled.display();
   delay(3000);
 }
+
 
 void resetSystem() {
   step = 0;

@@ -4,7 +4,7 @@ import time
 
 # Configure the serial port
 try:
-    arduino = serial.Serial('COM7', 9600, timeout=1)  # Adjust COM port if necessary
+    arduino = serial.Serial('COM5', 9600, timeout=1)  # Adjust COM port if necessary
     time.sleep(2)  # Wait for the connection to establish
     print("Arduino connected successfully.")
 except serial.SerialException:
