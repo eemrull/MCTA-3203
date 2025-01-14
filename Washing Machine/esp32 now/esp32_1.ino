@@ -1,58 +1,66 @@
+#include <Arduino.h>
 #include <esp_now.h>
 #include <WiFi.h>
 
-#define LIMIT_SWITCH_PIN 13 // Adjust this pin number as needed
+// Struct to hold received data
+typedef struct {
+  char temperature[8];
+  char time[8];
+  char function[8];
+  int timeRemaining;
+  float detergentVolume;
+} UserData;
 
-// MAC address of ESP 2 (receiver)
-uint8_t esp2Address[] = {0xE0, 0x5A, 0x1B, 0xCB, 0x4D, 0x6C};
+UserData receivedData;
 
-// Variable to store the state of the limit switch
-bool limitSwitchState = false;
+// Callback function for receiving data
+void onDataReceive(const esp_now_recv_info *recvInfo, const uint8_t *data, int len) {
+    // Print sender MAC address
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             recvInfo->src_addr[0], recvInfo->src_addr[1], recvInfo->src_addr[2],
+             recvInfo->src_addr[3], recvInfo->src_addr[4], recvInfo->src_addr[5]);
+    Serial.print("Received data from: ");
+    Serial.println(macStr);
 
-// Callback when data is sent
-void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("Last Packet Send Status: ");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+    // Check if the received data matches the size of the structure
+    if (len == sizeof(UserData)) {
+        memcpy(&receivedData, data, len);
+
+        // Print the received data in human-readable format
+        Serial.println("Received User Data:");
+        Serial.print("Temperature: ");
+        Serial.println(receivedData.temperature);
+        Serial.print("Time: ");
+        Serial.println(receivedData.time);
+        Serial.print("Function: ");
+        Serial.println(receivedData.function);
+        Serial.print("Time Remaining: ");
+        Serial.println(receivedData.timeRemaining);
+        Serial.print("Detergent level: ");
+        Serial.println(receivedData.detergentVolume);
+    } else {
+        Serial.println("Invalid data size received!");
+    }
 }
 
 void setup() {
-  // Initialize Serial Monitor
-  Serial.begin(115200);
+    Serial.begin(115200);
 
-  // Set up limit switch pin
-  pinMode(LIMIT_SWITCH_PIN, INPUT_PULLUP);
+    // Set device as a Wi-Fi Station
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect(); // No need for connection
 
-  // Initialize WiFi in station mode
-  WiFi.mode(WIFI_STA);
+    // Initialize ESP-NOW
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
 
-  // Initialize ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-
-  // Register the send callback
-  esp_now_register_send_cb(onDataSent);
-
-  // Add peer (ESP 2)
-  esp_now_peer_info_t peerInfo;
-  memcpy(peerInfo.peer_addr, esp2Address, 6);
-  peerInfo.channel = 0;
-  peerInfo.encrypt = false;
-
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-    return;
-  }
+    // Register the receive callback
+    esp_now_register_recv_cb(onDataReceive);
 }
 
 void loop() {
-  // Read limit switch state
-  limitSwitchState = digitalRead(LIMIT_SWITCH_PIN) == LOW; // LOW when pressed
-
-  // Send state to ESP 2
-  esp_now_send(esp2Address, (uint8_t *)&limitSwitchState, sizeof(limitSwitchState));
-
-  // Small delay for stability
-  delay(100);
+    // Nothing to do here
 }
