@@ -10,6 +10,7 @@
 const int door = 4;      // Pin for the door sensor
 const int trigPin = 32;  // Ultrasonic Trigger Pin
 const int echoPin = 33;  // Ultrasonic Echo Pin
+const int buzzer = 26;
 
 // OLED Initialization
 #define OLED1_WIDTH 128
@@ -37,7 +38,7 @@ UserData userData;
 
 // Variables for selection
 const char *temperatureOptions[] = {"20C", "40C", "60C", "90C"};
-const char *timeOptions[] = {"15m", "30m", "45m", "60m"};
+const char *timeOptions[] = {"0.1m", "15m", "30m", "45m"};
 const char *functionOptions[] = {"Wash", "Rinse", "Spin"};
 
 int step = 0;
@@ -54,7 +55,6 @@ int parseTime(const char *timeStr) {
   }
   return 0;
 }
-
 
 bool buttonState = HIGH;
 bool lastButtonState = HIGH;
@@ -88,6 +88,7 @@ void setup() {
   pinMode(door, INPUT_PULLUP);
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
+  pinMode(buzzer, OUTPUT);
 
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
@@ -338,6 +339,9 @@ void startCountdown(int totalSeconds) {
   oled.setCursor(0, 0);
   oled.print("Complete!");
   oled.display();
+  digitalWrite(buzzer, HIGH); // Turn the buzzer ON
+  delay(1500);                  // Wait for 1 second
+  digitalWrite(buzzer, LOW);  // Turn the buzzer OFF
   delay(3000);
 }
 
