@@ -4,54 +4,64 @@
 
 int speedDelay = 1000; // Initial delay between steps in microseconds
 
-// Test modes and durations
-int selectedMode = 1;   // Change this for testing (1 = Wash, 2 = Rinse, 3 = Spin)
-int testDuration = 3;   // Duration in minutes (set to 3 minutes for testing)
+// Structure to hold received data from master
+typedef struct {
+  char function[8];
+  int timeRemaining;
+} ESP3Data;
+
+ESP3Data receivedData;
+
+// Callback function for receiving data from master
+void onDataReceive(const uint8_t *data, int len) {
+    if (len == sizeof(ESP3Data)) {
+        memcpy(&receivedData, data, len);
+
+        // Print the received data in human-readable format
+        Serial.print("Received Function: ");
+        Serial.println(receivedData.function);
+        Serial.print("Time Remaining: ");
+        Serial.println(receivedData.timeRemaining);
+
+        // Execute motor functions based on the received data
+        if (strcmp(receivedData.function, "Wash") == 0) {
+            washMode(receivedData.timeRemaining); // Convert time to seconds
+        } else if (strcmp(receivedData.function, "Rinse") == 0) {
+            rinseMode(receivedData.timeRemaining); // Convert time to seconds
+        } else if (strcmp(receivedData.function, "Spin") == 0) {
+            spinMode(receivedData.timeRemaining); // Convert time to seconds
+        } else {
+            Serial.println("Invalid Function");
+        }
+    }
+}
 
 void setup() {
-  // Initialize Serial Monitor
   Serial.begin(115200);
-  Serial.println("Stepper Motor Washing Machine Test");
+  Serial.println("ESP 3 Stepper Motor Control");
 
   // Initialize pins
   pinMode(STEP_PIN, OUTPUT);
   pinMode(DIR_PIN, OUTPUT);
   pinMode(EN_PIN, OUTPUT);
-
   digitalWrite(EN_PIN, LOW); // Enable the motor driver
+
+  // Set device as a Wi-Fi Station
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect(); // No need for connection
+
+  // Initialize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Register the receive callback
+  esp_now_register_recv_cb(onDataReceive);
 }
 
 void loop() {
-  Serial.print("Selected Mode: ");
-  Serial.println(selectedMode);
-  Serial.print("Test Duration (minutes): ");
-  Serial.println(testDuration);
-
-  // Select the mode based on the test variable
-  switch (selectedMode) {
-    case 1: // Wash Mode
-      Serial.println("Starting Wash Mode");
-      washMode(testDuration * 60); // Convert minutes to seconds
-      break;
-
-    case 2: // Rinse Mode
-      Serial.println("Starting Rinse Mode");
-      rinseMode(testDuration * 60); // Convert minutes to seconds
-      break;
-
-    case 3: // Spin Mode
-      Serial.println("Starting Spin Mode");
-      spinMode(testDuration * 60); // Convert minutes to seconds
-      break;
-
-    default:
-      Serial.println("Invalid Mode Selected");
-      break;
-  }
-
-  // Pause for a moment before restarting the loop
-  Serial.println("Cycle Complete. Restarting...");
-  delay(5000);
+    // Nothing to do here
 }
 
 void washMode(int durationSeconds) {
@@ -67,14 +77,6 @@ void washMode(int durationSeconds) {
     digitalWrite(DIR_PIN, LOW);
     rotateSteps(200);
     delay(500);
-
-    // Debug remaining time
-    unsigned long elapsedTime = (millis() - startTime) / 1000; // Convert to seconds
-    unsigned long remainingTime = durationSeconds - elapsedTime;
-    Serial.print("Elapsed Time (s): ");
-    Serial.println(elapsedTime);
-    Serial.print("Remaining Time (s): ");
-    Serial.println(remainingTime);
   }
   Serial.println("Wash Mode Complete");
 }
@@ -87,14 +89,6 @@ void rinseMode(int durationSeconds) {
     digitalWrite(DIR_PIN, HIGH);
     rotateSteps(400);
     delay(1000); // Pause for a moment
-
-    // Debug remaining time
-    unsigned long elapsedTime = (millis() - startTime) / 1000; // Convert to seconds
-    unsigned long remainingTime = durationSeconds - elapsedTime;
-    Serial.print("Elapsed Time (s): ");
-    Serial.println(elapsedTime);
-    Serial.print("Remaining Time (s): ");
-    Serial.println(remainingTime);
   }
   Serial.println("Rinse Mode Complete");
 }
@@ -115,14 +109,6 @@ void spinMode(int durationSeconds) {
       speedDelay = delayTime;
       rotateSteps(10);
     }
-
-    // Debug remaining time
-    unsigned long elapsedTime = (millis() - startTime) / 1000; // Convert to seconds
-    unsigned long remainingTime = durationSeconds - elapsedTime;
-    Serial.print("Elapsed Time (s): ");
-    Serial.println(elapsedTime);
-    Serial.print("Remaining Time (s): ");
-    Serial.println(remainingTime);
   }
   Serial.println("Spin Mode Complete");
 }

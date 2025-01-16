@@ -1,8 +1,8 @@
 #include <HX711_ADC.h>
 
 // Pins:
-const int HX711_dout = 3; // MCU > HX711 dout pin
-const int HX711_sck = 4;  // MCU > HX711 sck pin
+const int HX711_dout = 5; // MCU > HX711 dout pin
+const int HX711_sck = 17;  // MCU > HX711 sck pin
 
 // HX711 constructor:
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
@@ -41,22 +41,10 @@ void loop() {
   if (newDataReady) {
     if (millis() > t + serialPrintInterval) {
       float i = LoadCell.getData();
-      Serial.print("Load cell output value: ");
+      Serial.print("Weight(g): ");
       Serial.println(i);
       newDataReady = 0;
       t = millis();
     }
-  }
-
-  // Receive command from serial terminal
-  if (Serial.available() > 0) {
-    char inByte = Serial.read();
-    if (inByte == 't')
-      LoadCell.tareNoDelay(); // Tare
-  }
-
-  // Check if last tare operation is complete
-  if (LoadCell.getTareStatus() == true) {
-    Serial.println("Tare complete");
   }
 }
